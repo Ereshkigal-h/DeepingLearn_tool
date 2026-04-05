@@ -1,6 +1,7 @@
 import argparse
 import os
 import torch
+from torch import nn
 from torch.optim import SGD, Adam
 import loss
 import tools
@@ -8,13 +9,16 @@ from dataset import General_Dataset
 import tqdm
 from evluator import evaluator
 LOSS_REGISTRY={
+    "mse":nn.MSELoss(),
+    "bce":nn.BCELoss(),
+    "ce":nn.CrossEntropyLoss(),#不需要softmax,直接输入logit
+    "triplet":nn.TripletMarginLoss(),
 
 }
 OPTIMIZER_REGISTRY= {
     "sgd":SGD,
     "adam":Adam,
 }
-
 def train(args):
     optim_kwargs = {
         "lr":args.learning_rate,
@@ -62,49 +66,12 @@ def train(args):
                 print(result_dict)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="train")
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--train_steps", type=int, default=50,help="number of iterations per epoch")
-    parser.add_argument("--loss", type=str,choices=[], default="triplet")#NAN
+    parser.add_argument("--loss", type=str, default="triplet")#NAN
     parser.add_argument("--optimizer", type=str, choices=['sgd', 'adam'], default="adam")
     parser.add_argument("--gpu", default="0", type=str, help="gpu id you use")
     parser.add_argument("--learning_rate", type=float, default=0.001)
