@@ -5,7 +5,7 @@ from torch.optim import SGD, Adam
 import loss
 import tools
 from dataset import General_Dataset
-import o
+import tqdm
 LOSS_REGISTRY={
 
 }
@@ -42,7 +42,8 @@ def train(args):
     optimizer.zero_grad()
     for epoch in range(epochs):
         total_loss = 0
-        for i,(data,labels) in openumerate(train_dataloader):
+        train_pbar = tqdm.tqdm(train_dataloader, total=train_steps, desc=f"Epoch [{epoch + 1}/{epochs}]")
+        for i,(data,labels) in enumerate(train_pbar):
             if i > train_steps:
                 break
             outputs=model(data)
@@ -57,7 +58,8 @@ def train(args):
         print(f"Epoch {epoch+1} 结束! 平均 Loss: {avg_loss:.4f}")
         if epochs%10==0:
             with torch.no_grad():
-                for i,(data,labels) in enumerate(test_dataloader):
+                test_pbar=tqdm.tqdm(test_dataloader, total=train_steps, desc=f"Epoch [{epoch + 1}/{epochs}]")
+                for i,(data,labels) in enumerate(test_pbar):
                     outputs=model(data)
 
 
