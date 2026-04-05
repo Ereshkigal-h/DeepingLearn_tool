@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import tqdm
 from imblearn import metrics
+from matplotlib import pyplot as plt
 from sklearn.metrics import roc_curve, auc
 
 
@@ -21,9 +22,24 @@ def auc_metric(y_true,y_pred):
         "fpr": fpr,
         "tpr": tpr
     }
+def plot_roc(fpr, tpr, auc, save_path="roc_result.png",**kwargs):
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, color='red', lw=2, label=f'ROC Curve (AUC = {auc:.4f})')
+    plt.plot([0, 1], [0, 1], color='blue', lw=2, linestyle='--')  # 对角线虚线
 
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate (FPR)')
+    plt.ylabel('True Positive Rate (TPR)')
+    plt.title('ROC Curve')
+    plt.legend(loc="lower right")
+    plt.grid(alpha=0.3)
+
+    plt.savefig(save_path, dpi=300)
+    plt.show()
+    print(f"ROC曲线已保存为: {save_path}")
 METRIC={
-    "ROC_AUC":auc_metric,
+    "ROC_AUC":[auc_metric,plot_roc],
 }
 class evluator:
     def __init__(self,metric_list):
@@ -46,9 +62,12 @@ class evluator:
         all_labels = np.concatenate(all_labels, axis=0).flatten()
         result_dict={}
         for i,metric in enumerate(self.metric_list):
-            tmp_list=metric(all_labels,all_similarities)
-            result_dict[self.metric_names[i]]=tmp_list
+            tmp_dict=metric[0](all_labels,all_similarities)
+            result_dict[self.metric_names[i]]=tmp_dict
+            metric[1](**tmp_dict)
         return result_dict
+
+
 
 
 
