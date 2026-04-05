@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import tqdm
-from imblearn import metrics
 from matplotlib import pyplot as plt
 from sklearn.metrics import roc_curve, auc
 
@@ -41,7 +40,7 @@ def plot_roc(fpr, tpr, auc, save_path="roc_result.png",**kwargs):
 METRIC={
     "ROC_AUC":[auc_metric,plot_roc],
 }
-class evluator:
+class evaluator:
     def __init__(self,metric_list):
         self.metric_list = []
         self.metric_names = metric_list
@@ -49,12 +48,11 @@ class evluator:
             self.metric_list.append(METRIC[metric])
 
     @torch.no_grad()
-    def evaluate(self,model,test_dataloader,device):
+    def evaluate(self,model,test_dataloader):
         model.eval()
         all_similarities = []
         all_labels = []
         for data,labels in tqdm.tqdm(test_dataloader):
-            #这里是最后结果的计算方式
             result=model(data)
             all_similarities.append(result.cpu().detach().numpy())
             all_labels.append(labels.cpu().detach().numpy())

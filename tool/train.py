@@ -6,6 +6,7 @@ import loss
 import tools
 from dataset import General_Dataset
 import tqdm
+from evluator import evluator
 LOSS_REGISTRY={
 
 }
@@ -23,14 +24,13 @@ def train(args):
     epochs = args.epochs
     train_steps = args.train_steps
     accuracy = args.accuracy
+    evaluators=evluator(args.evaluator)
     if args.loss not in LOSS_REGISTRY:
         raise ValueError("Unknown loss {}".format(args.loss))
     if args.optimizer == 'sgd':
         optim_kwargs["momentum"] = args.momentum
         optim_kwargs["nesterov"] = True
     elif args.optimizer == 'adam':
-        # Adam 不需要 momentum，它用 betas
-        # 假设你想把 args.momentum 作为 beta1
         optim_kwargs["betas"] = (args.momentum, 0.999)
     model = None
     criterion=LOSS_REGISTRY[args.loss].cuda()
@@ -58,9 +58,7 @@ def train(args):
         print(f"Epoch {epoch+1} 结束! 平均 Loss: {avg_loss:.4f}")
         if epochs%10==0:
             with torch.no_grad():
-                test_pbar=tqdm.tqdm(test_dataloader, total=train_steps, desc=f"Epoch [{epoch + 1}/{epochs}]")
-                for i,(data,labels) in enumerate(test_pbar):
-                    outputs=model(data)
+                evaluators.evaluate(model,test_dataloader)
 
 
 
@@ -113,6 +111,7 @@ if __name__ == "__main__":
     parser.add_argument("--accuracy", type=float, default="float32")
     parser.add_argument("--train_path", type=str, default="./data/train.csv")
     parser.add_argument("--test_path", type=str, default="./data/test.csv")
+    parser.add_argument("--evaluator", type=str, nargs='+', default=["ROC_AUC"])
     args = parser.parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     tools.set_seed(42)
