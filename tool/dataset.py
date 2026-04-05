@@ -6,11 +6,11 @@ from torch.utils.data import Dataset
 import tool
 
 
-class dataset(Dataset):
-    def __init__(self,pair_path,transform=None,image_size=112,accuracy="float32"):
-        self.pair_path = pair_path
+class General_Dataset(Dataset):
+    def __init__(self, path, transform=None, image_size=112, accuracy="float32"):
+        self.path = path
         self.images_size = image_size
-        self.samples=self.read_path(self.pair_path)
+        self.samples=self.read_path(self.path)
         self.transform = transform
         dtype_mapping = {
             "float16": (np.float16, torch.float16),
