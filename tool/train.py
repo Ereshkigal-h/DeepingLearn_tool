@@ -6,7 +6,7 @@ import loss
 import tools
 from dataset import General_Dataset
 import tqdm
-from evluator import evluator
+from evluator import evaluator
 LOSS_REGISTRY={
 
 }
@@ -24,7 +24,7 @@ def train(args):
     epochs = args.epochs
     train_steps = args.train_steps
     accuracy = args.accuracy
-    evaluators=evluator(args.evaluator)
+    evaluators=evaluator(args.evaluator)
     if args.loss not in LOSS_REGISTRY:
         raise ValueError("Unknown loss {}".format(args.loss))
     if args.optimizer == 'sgd':
@@ -58,7 +58,8 @@ def train(args):
         print(f"Epoch {epoch+1} 结束! 平均 Loss: {avg_loss:.4f}")
         if epochs%10==0:
             with torch.no_grad():
-                evaluators.evaluate(model,test_dataloader)
+                result_dict=evaluators.evaluate(model,test_dataloader)
+                print(result_dict)
 
 
 
