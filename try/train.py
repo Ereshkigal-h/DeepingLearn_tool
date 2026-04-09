@@ -15,13 +15,10 @@ LOSS_REGISTRY = {
     "ce": nn.CrossEntropyLoss(),  # 不需要softmax,直接输入logit
     "triplet": nn.TripletMarginLoss(),
 }
-
 OPTIMIZER_REGISTRY = {
     "sgd": SGD,
     "adam": Adam,
 }
-
-
 def train(args):
     optim_kwargs = {
         "lr": args.learning_rate,
@@ -47,7 +44,7 @@ def train(args):
 
     optimizer = OPTIMIZER_REGISTRY[args.optimizer](models.parameters(), **optim_kwargs)
 
-    train_dataset = General_Dataset(args.train_path)
+    data = General_Dataset().read_path(args.path)
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
     test_dataset = General_Dataset(args.test_path)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
@@ -90,8 +87,7 @@ if __name__ == "__main__":
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--weight_decay", type=float, default=1e-4)
     parser.add_argument("--accuracy", type=str, default="float32")
-    parser.add_argument("--train_path", type=str, default="./data/train.csv")
-    parser.add_argument("--test_path", type=str, default="./data/test.csv")
+    parser.add_argument("--path", type=str)
     parser.add_argument("--evaluator", type=str, nargs='+', default=["ROC_AUC"])
     args = parser.parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
