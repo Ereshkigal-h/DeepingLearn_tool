@@ -51,8 +51,8 @@ def train(args):
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
     test_dataset = General_Dataset(args.test_path)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
-
     for epoch in range(epochs):
+        models.train()
         total_loss = 0
         train_pbar = tqdm.tqdm(train_dataloader, total=train_steps, desc=f"Epoch [{epoch + 1}/{epochs}]")
         for i, (data, labels) in enumerate(train_pbar):
@@ -74,7 +74,7 @@ def train(args):
 
         if epochs % 10 == 0:
             with torch.no_grad():
-                result_dict = evaluators.evaluate(models, test_dataloader)
+                result_dict = evaluators.evaluate(models, test_dataloader,device=device)
                 print(result_dict)
 
 

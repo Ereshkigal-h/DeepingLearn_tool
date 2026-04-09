@@ -99,8 +99,8 @@ class evaluator:
         for data, labels in tqdm.tqdm(test_dataloader, desc="分类评估中"):
             data = data.to(device)
             result = model(data)
-            all_preds.append(result.cpu().numpy())
-            all_labels.append(labels.cpu().numpy())
+            all_preds.append(result.cpu().detach().numpy())
+            all_labels.append(labels.cpu().detach().numpy())
 
         # 极其关键的修复：不盲目用 flatten()，防止多分类矩阵被拉成一根线
         all_preds = np.concatenate(all_preds, axis=0)

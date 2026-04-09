@@ -1,12 +1,20 @@
 import math
+import platform
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+system = platform.system()
+if system == 'Windows':
+    font_list = ['SimHei', 'Microsoft YaHei']
+else: # Linux
+    font_list = ['WenQuanYi Micro Hei', 'Droid Sans Fallback', 'sans-serif']
 
-plt.rcParams['font.sans-serif'] = ['SimHei']  # Windows用黑体
+plt.rcParams['font.sans-serif'] = font_list
 plt.rcParams['axes.unicode_minus'] = False    # 正常显示负号
-sns.set_theme(style="whitegrid", font='SimHei')
+sns.set_theme(style="whitegrid")
+# 防止 seaborn 覆盖掉上面设置的字体
+plt.rcParams['font.family'] = plt.rcParams['font.sans-serif']
 def load_data_csv(path,columns=True,info=False,pop:list=None):
     """
         读取 CSV 数据，并根据参数执行数据概览和列提取操作。
