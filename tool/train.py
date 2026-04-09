@@ -7,7 +7,7 @@ import model
 import tools
 from dataset import General_Dataset
 import tqdm
-from evluator import evaluator
+from evaluator import evaluator
 LOSS_REGISTRY={
     "mse":nn.MSELoss(),
     "bce":nn.BCELoss(),
