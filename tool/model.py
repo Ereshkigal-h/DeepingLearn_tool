@@ -3,7 +3,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 class transformer(nn.Module):
-    def __init__(self,vocab_size,layer,d_model,num_heads,d_ff,dropout=0.1):
+    def __init__(self,vocab_size,layer=6,d_model=512,num_heads=8,d_ff=2048,dropout=0.1):
         super().__init__()
         self.vocab_size = vocab_size
         self.d_model = d_model

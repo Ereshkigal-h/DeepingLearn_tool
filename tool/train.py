@@ -3,7 +3,7 @@ import os
 import torch
 from torch import nn
 from torch.optim import SGD, Adam
-import loss
+import model
 import tools
 from dataset import General_Dataset
 import tqdm
@@ -36,7 +36,7 @@ def train(args):
         optim_kwargs["nesterov"] = True
     elif args.optimizer == 'adam':
         optim_kwargs["betas"] = (args.momentum, 0.999)
-    model = None
+    models=model.transformer()
     criterion=LOSS_REGISTRY[args.loss].cuda()
     optimizer = OPTIMIZER_REGISTRY[args.optimizer](model.parameters(),**optim_kwargs)
     train_dataset=General_Dataset(args.path)

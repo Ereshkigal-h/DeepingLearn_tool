@@ -7,7 +7,7 @@ import seaborn as sns
 plt.rcParams['font.sans-serif'] = ['SimHei']  # Windows用黑体
 plt.rcParams['axes.unicode_minus'] = False    # 正常显示负号
 sns.set_theme(style="whitegrid", font='SimHei')
-def load_data(path,columns=True,info=False,pop:list=None):
+def load_data_csv(path,columns=True,info=False,pop:list=None):
     """
         读取 CSV 数据，并根据参数执行数据概览和列提取操作。
 
@@ -51,6 +51,58 @@ def load_data(path,columns=True,info=False,pop:list=None):
         return data
     except FileNotFoundError:
         print("file not found")
+        return None
+def load_data_txt(path,sep:str=" ", comment_char=None, columns=None, clean_func=None,encoding="utf-8"):
+    """
+       读取纯文本文件，支持去除注释、按分隔符切分、应用自定义清洗函数，并返回 DataFrame。
+
+       参数 (Parameters):
+       -----------------
+       path : str
+           TXT 文件的路径。
+       sep : str, 默认 None
+           分隔符。如果提供，会将每一行切分成多列（如 '\t', ',', '|||' 等）。
+           如果为 None，则整行作为 DataFrame 的单独一列。
+       comment_char : str, 默认 None
+           注释符号。如果提供（例如 '#' 或 '//'），则会忽略该符号及其后面的所有内容。
+       columns : list, 默认 None
+           生成的 DataFrame 的列名。如果提供了 sep 且切分出 N 列，建议提供 N 个列名。
+       clean_func : callable, 默认 None
+           一个自定义的字符串处理函数。如果提供，会在切分前对每一行应用此函数（如转小写、去特殊字符）。
+
+       返回 (Returns):
+       --------------
+       pd.DataFrame
+           处理后的数据集。如果读取失败则返回 None。
+       """
+    print(f"Loading plain text from: {path}")
+    data_list = []
+    try:
+        with open(path, 'r', encoding=encoding) as f:
+            for line in f:
+                if comment_char is not None and comment_char in line:
+                    line = line.split(comment_char)[0]
+                line = line.strip()
+                if clean_func is not None:
+                    line = clean_func(line)
+
+                if sep is not None:
+                    parsed_line = [item.strip() for item in line.split(sep)]
+                else:
+                    parsed_line = [line]
+
+                data_list.append(parsed_line)
+        if columns is not None:
+            df = pd.DataFrame(data_list, columns=columns)
+        else:
+            num_cols = len(data_list[0]) if data_list else 0
+            df = pd.DataFrame(data_list, columns=[f"col_{i}" for i in range(num_cols)])
+
+        print(f"Load success. Shape: {df.shape}")
+        return df
+
+    except Exception as e:
+        print(f"Error reading txt: {e}")
         return None
 def plot_features_frequency(df,plot_cols:list,kde=False):
     """
