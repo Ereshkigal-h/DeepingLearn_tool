@@ -24,5 +24,5 @@ def set_seed(seed):
         torch.backends.cudnn.benchmark = False  # 禁用 cuDNN 自动寻找最快算法的机制
 
         #强制 PyTorch 报错如果使用了不可复现的算法
-        torch.use_deterministic_algorithms(True)
+        #torch.use_deterministic_algorithms(True)
         print(f"全局随机种子已固定为: {seed}")
