@@ -45,16 +45,16 @@ def train(args):
     test_dataloader = torch.utils.data.DataLoader(test_dataset,batch_size=batch_size,shuffle=True,num_workers=0)
     optimizer.zero_grad()
     for epoch in range(epochs):
+        optimizer.zero_grad()
         total_loss = 0
         train_pbar = tqdm.tqdm(train_dataloader, total=train_steps, desc=f"Epoch [{epoch + 1}/{epochs}]")
         for i,(data,labels) in enumerate(train_pbar):
             if i > train_steps:
                 break
-            outputs=model(data)
+            outputs=models(data)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
             total_loss+=loss.item()
             if i%10==0:
                 print(f"Epoch [{epoch + 1}/{epochs}] Step [{i + 1}/{train_steps}] Loss: {loss.item():.4f}")
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     parser.add_argument("--gpu", default="0", type=str, help="gpu id you use")
     parser.add_argument("--learning_rate", type=float, default=0.001)
     parser.add_argument("--momentum", type=float, default=0.9)
-    parser.add_argument("--accuracy", type=float, default="float32")
+    parser.add_argument("--accuracy", type=str, default="float32")
     parser.add_argument("--train_path", type=str, default="./data/train.csv")
     parser.add_argument("--test_path", type=str, default="./data/test.csv")
     parser.add_argument("--evaluator", type=str, nargs='+', default=["ROC_AUC"])
