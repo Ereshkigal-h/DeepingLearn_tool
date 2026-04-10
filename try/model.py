@@ -36,6 +36,15 @@ class transformer(nn.Module):
         else:
             combined_mask_bool = causal_mask_bool | mask
         return combined_mask_bool
+    @torch.no_grad()
+    def generate(self, src, max_length=50, start_token_id=1, end_token_id=2):
+        device = src.device
+        batch_size = src.size(0)
+        pred=torch.full((batch_size,1),start_token_id,device=device)
+        for _ in range(max_length):
+            mask=
+
+
 
 class transformer_decoder(nn.Module):
     def __init__(self,d_model,num_heads,d_ff,dropout=0.1,layer=6):

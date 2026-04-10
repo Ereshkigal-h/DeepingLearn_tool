@@ -123,13 +123,17 @@ class evaluator:
         all_preds = []
         all_labels = []
         for batch in tqdm.tqdm(test_dataloader, desc="生成评估中"):
-            input_ids = batch[0].to(device)
-            target_ids = batch[1]
-            generated_ids = model.generate(input_ids, max_length=max_length)
-
+            if isinstance(batch, dict):
+                input_ids = batch["src"].to(device)
+                target_ids = batch["tar_label"]
+            else:
+                input_ids = batch[0].to(device)
+                target_ids = batch[1]
+            generated_ids = model.generate(input_ids, max_length=max_length
+                                           ,start_token_id=tokenizer.convert_tokens_to_ids("[CLS]")
+                                           ,end_token_id=tokenizer.convert_tokens_to_ids("[SEP]"))
             preds_text = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
             labels_text = tokenizer.batch_decode(target_ids, skip_special_tokens=True)
-
             all_preds.extend(preds_text)
             all_labels.extend(labels_text)
 
