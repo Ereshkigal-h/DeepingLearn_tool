@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader, random_split
 from transformers import AutoTokenizer
 import model
 import tool.tools as tools
-from dataset import General_Dataset
+from new_dataset import NLPDataset,load_cornell_dialogue
 import tqdm
 from tool.evaluator import evaluator
 
@@ -19,53 +19,30 @@ LOSS_REGISTRY = {
 }
 
 OPTIMIZER_REGISTRY = {"sgd": SGD, "adam": Adam}
-
-
 def train(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"当前使用的训练设备是: {device}")
 
-    # ================= 1. 初始化分词器 =================
     print(f"正在加载分词器: {args.tokenizer_name}")
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_name)
-
-    full_dataset = General_Dataset(args.data_path)
+    samples=load_cornell_dialogue(args.train_path,args.test_path)
+    full_dataset = NLPDataset(samples)
     total_len = len(full_dataset)
-
     # 按照 5:1 划分 (5/6 为训练集，1/6 为测试集)
     train_len = int(total_len * (5 / 6))
     test_len = total_len - train_len
-
-    # 使用 PyTorch 官方化工具随机划分
     train_dataset, test_dataset = random_split(full_dataset, [train_len, test_len])
-    print(f"数据集划分完成 -> 总量: {total_len} | 训练集: {train_len} | 测试集: {test_len}")
+    print(f"数据集划分完成 总量: {total_len} | 训练集: {train_len} | 测试集: {test_len}")
 
-    # ================= 3. 定义动态分词整理函数 =================
     def collate_fn(batch):
-        """
-        这个函数会在每次 DataLoader 抓取一个 Batch 的数据时被自动调用。
-        batch 的格式是: [ (文本1, 标签1), (文本2, 标签2), ... ]
-        """
         texts = [item[0] for item in batch]
         labels = [item[1] for item in batch]
 
         # 一键完成切词、映射数字、自动截断、用0补齐长度
-        inputs = tokenizer(
-            texts,
-            padding=True,
-            truncation=True,
-            max_length=args.max_length,
-            return_tensors="pt"  # 直接返回 PyTorch Tensor
-        )
-        labels = torch.tensor(labels, dtype=torch.long)
-
-        return inputs, labels
-
+        input = tokenizer(texts, padding=True, truncation=True, max_length=args.max_length, return_tensors="pt")
+        return input, labels
     # 将 collate_fn 挂载到 DataLoader 上
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn)
-
-    # ================= 4. 模型与训练配置 =================
     evaluators = evaluator(args.evaluator)
     if args.loss not in LOSS_REGISTRY:
         raise ValueError(f"Unknown loss {args.loss}")
@@ -87,7 +64,6 @@ def train(args):
         my_model.train()
         total_loss = 0
         train_pbar = tqdm.tqdm(train_dataloader, total=args.train_steps, desc=f"Epoch [{epoch + 1}/{args.epochs}]")
-
         for i, (inputs, labels) in enumerate(train_pbar):
             if i >= args.train_steps:
                 break
@@ -113,11 +89,9 @@ def train(args):
         avg_loss = total_loss / args.train_steps
         print(f"Epoch {epoch + 1} 结束! 平均 Loss: {avg_loss:.4f}")
 
-        # 评估逻辑
         if (epoch + 1) % 10 == 0 or epoch == args.epochs - 1:
             with torch.no_grad():
                 my_model.eval()
-                # 评估时把 tokenizer 也传进去（为你的 generation 任务做准备）
                 result_dict = evaluators.evaluate(my_model, test_dataloader, tokenizer=tokenizer, device=device)
                 print(f"评估结果: {result_dict}")
 

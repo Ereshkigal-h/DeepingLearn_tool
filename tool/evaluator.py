@@ -102,11 +102,11 @@ class evaluator:
             all_preds.append(result.cpu().detach().numpy())
             all_labels.append(labels.cpu().detach().numpy())
 
-        # 极其关键的修复：不盲目用 flatten()，防止多分类矩阵被拉成一根线
+
         all_preds = np.concatenate(all_preds, axis=0)
         all_labels = np.concatenate(all_labels, axis=0).flatten()
 
-        # 二分类时特殊处理，把 [N, 1] 变成 [N] 方便算 AUC
+
         if all_preds.ndim == 2 and all_preds.shape[1] == 1:
             all_preds = all_preds.flatten()
 

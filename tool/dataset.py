@@ -4,7 +4,6 @@ import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
 
-
 class ImageDataset(Dataset):
 
     def __init__(self, data_list, transform=None, image_size=112, accuracy="float32"):
@@ -37,3 +36,17 @@ class ImageDataset(Dataset):
         img_tensor = self.read_image(img_path)
         label_tensor = torch.tensor(label, dtype=self.torch_type)
         return img_tensor, label_tensor
+
+class NLPDataset(Dataset):
+
+    def __init__(self, data_list):
+        self.data_list = data_list
+
+    def __len__(self):
+        return len(self.data_list)
+
+    def __getitem__(self, index):
+        # 仅仅返回字符串，不做任何转换
+        # 数据会在 DataLoader 的 collate_fn 阶段交由 Tokenizer 处理
+        item = self.data_list[index]
+        return item
