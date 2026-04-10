@@ -27,7 +27,7 @@ class transformer(nn.Module):
         seq_len=x.size(1)
         row=torch.arange(seq_len,device=x.device).unsqueeze(1)
         column=torch.arange(seq_len,device=x.device).unsqueeze(0)
-        causal_mask_bool= column >row
+        causal_mask_bool= column<row
         causal_mask_bool = causal_mask_bool.unsqueeze(0).unsqueeze(0)
         #causal_mask_bool[1,1,seq_len,seq_len]
         #mask[batch_size,1,1,seq_len]
@@ -42,7 +42,8 @@ class transformer(nn.Module):
         batch_size = src.size(0)
         pred=torch.full((batch_size,1),start_token_id,device=device)
         for _ in range(max_length):
-            mask=
+            mask =self.combine_mask(pred)
+
 
 
 
