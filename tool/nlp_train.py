@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader, random_split
 from transformers import AutoTokenizer
 import nlp_model
 import tool.tools as tools
-from new_dataset import NLPDataset,load_cornell_dialogue
+from dataset import NLPDataset,load_cornell_dialogue
 import tqdm
 from tool.evaluator import evaluator
 
@@ -61,7 +61,7 @@ def train(args):
         optim_kwargs.update({"momentum": args.momentum, "nesterov": True})
     elif args.optimizer == 'adam':
         optim_kwargs.update({"betas": (args.momentum, 0.999)})
-    my_model = model.transformer(vocab_size=tokenizer.vocab_size).to(device)
+    my_model = nlp_model.transformer(vocab_size=tokenizer.vocab_size).to(device)
     criterion = LOSS_REGISTRY[args.loss].to(device)
     optimizer = OPTIMIZER_REGISTRY[args.optimizer](my_model.parameters(),ignore_index=tokenizer.pad_token_id,**optim_kwargs)
     for epoch in range(args.epochs):
@@ -76,10 +76,10 @@ def train(args):
             inputs = {k: v.to(device) for k, v in batch_data.items()}
             optimizer.zero_grad()
             outputs = my_model(
-                src=batch_data['src'],
-                tar=batch_data['tar_input'],
-                src_mask=batch_data['src_mask'],
-                tar_mask=batch_data['tar_mask']
+                src=inputs['src'],
+                tar=inputs['tar_input'],
+                src_mask=inputs['src_mask'],
+                tar_mask=inputs['tar_mask']
             )
             loss = criterion(outputs.reshape(-1, tokenizer.vocab_size), batch_data['tar_label'].reshape(-1))
             loss.backward()

@@ -1,6 +1,6 @@
 import math
 import torch
-from torch import nn
+from torch import nn, device
 import torch.nn.functional as F
 class transformer(nn.Module):
     def __init__(self,vocab_size,layer=6,d_model=512,num_heads=8,d_ff=2048,dropout=0.1):
@@ -18,7 +18,7 @@ class transformer(nn.Module):
         tar=self.embedding2(tar)
         combined_mask = self.combine_mask(tar,tar_mask)
         q_k=self.encoder(src,src_mask)
-        x=self.decoder(tar,q_k,mask=tar_mask,conb_mask= combined_mask)
+        x=self.decoder(tar,q_k,mask=src_mask,conb_mask= combined_mask)
         x=self.fc_out(x)
         return x
     def combine_mask(self,x,mask=None):

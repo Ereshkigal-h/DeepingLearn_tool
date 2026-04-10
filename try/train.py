@@ -1,5 +1,6 @@
 import argparse
 import os
+os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 import torch
 from torch import nn
 from torch.optim import SGD, Adam
@@ -12,17 +13,17 @@ import tqdm
 from tool.evaluator import evaluator
 
 LOSS_REGISTRY = {
-    "mse": nn.MSELoss(),
-    "bce": nn.BCELoss(),
-    "ce": nn.CrossEntropyLoss(),
-    "triplet": nn.TripletMarginLoss(),
+    "mse": nn.MSELoss,
+    "bce": nn.BCELoss,
+    "ce": nn.CrossEntropyLoss,
+    "triplet": nn.TripletMarginLoss,
 }
 OPTIMIZER_REGISTRY = {"sgd": SGD, "adam": Adam}
 def train(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"正在加载分词器: {args.tokenizer_name}")
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_name)
-    samples=load_cornell_dialogue(args.train_path,args.test_path)
+    samples=load_cornell_dialogue(args.data_path,args.label_path)
     full_dataset = NLPDataset(samples)
     total_len = len(full_dataset)
     #按照 5:1 划分 (5/6 为训练集，1/6 为测试集)
@@ -62,8 +63,8 @@ def train(args):
     elif args.optimizer == 'adam':
         optim_kwargs.update({"betas": (args.momentum, 0.999)})
     my_model = model.transformer(vocab_size=tokenizer.vocab_size).to(device)
-    criterion = LOSS_REGISTRY[args.loss].to(device)
-    optimizer = OPTIMIZER_REGISTRY[args.optimizer](my_model.parameters(),ignore_index=tokenizer.pad_token_id,**optim_kwargs)
+    criterion = LOSS_REGISTRY[args.loss](ignore_index=tokenizer.pad_token_id).to(device)
+    optimizer = OPTIMIZER_REGISTRY[args.optimizer](my_model.parameters(),**optim_kwargs)
     for epoch in range(args.epochs):
         my_model.train()
         total_loss = 0
@@ -76,10 +77,10 @@ def train(args):
             inputs = {k: v.to(device) for k, v in batch_data.items()}
             optimizer.zero_grad()
             outputs = my_model(
-                src=batch_data['src'],
-                tar=batch_data['tar_input'],
-                src_mask=batch_data['src_mask'],
-                tar_mask=batch_data['tar_mask']
+                src=inputs['src'],
+                tar=inputs['tar_input'],
+                src_mask=inputs['src_mask'],
+                tar_mask=inputs['tar_mask']
             )
             loss = criterion(outputs.reshape(-1, tokenizer.vocab_size), batch_data['tar_label'].reshape(-1))
             loss.backward()
@@ -112,8 +113,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--tokenizer_name", type=str, default="bert-base-uncased", help="HuggingFace分词器名称")
     parser.add_argument("--max_length", type=int, default=128, help="文本截断的最大长度")
-    parser.add_argument("--data_path", type=str, default="./data/full_data.csv", help="总数据集的路径(用来按5:1划分)")
-
+    parser.add_argument("--data_path", type=str, help="总数据集的路径(用来按5:1划分)")
+    parser.add_argument("--label_path",type=str, help="总标签的路径(用来按5:1划分)")
     parser.add_argument("--evaluator", type=str, nargs='+', default=["MULTI_ACC"])
     args = parser.parse_args()
 
