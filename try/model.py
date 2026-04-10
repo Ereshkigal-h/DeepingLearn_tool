@@ -30,23 +30,29 @@ class transformer(nn.Module):
         causal_mask_bool= column<row
         causal_mask_bool = causal_mask_bool.unsqueeze(0).unsqueeze(0)
         #causal_mask_bool[1,1,seq_len,seq_len]
-        #mask[batch_size,1,1,seq_len]
+        #mask[batch_size,seq_len]
         if mask is None:
             combined_mask_bool = causal_mask_bool
         else:
+            if mask.dim() == 2:
+                mask = mask.unsqueeze(1).unsqueeze(2)
+            elif mask.dim() == 3:
+                mask = mask.unsqueeze(1)
             combined_mask_bool = causal_mask_bool | mask
         return combined_mask_bool
     @torch.no_grad()
-    def generate(self, src, max_length=50, start_token_id=1, end_token_id=2):
+    def generate(self, src,src_mask,max_length=50,start_token_id=1, end_token_id=2):
         device = src.device
         batch_size = src.size(0)
         pred=torch.full((batch_size,1),start_token_id,device=device)
         for _ in range(max_length):
             mask =self.combine_mask(pred)
-
-
-
-
+            outputs = self.forward(src=src, tar=pred, src_mask=src_mask, tar_mask=mask)
+            #output [batch_size,sequence,vocab_size]
+            next_token = outputs[:, -1, :].argmax(dim=-1, keepdim=True)
+            pred = torch.cat([pred, next_token], dim=-1)
+            if (pred == end_token_id).any(dim=-1).all():
+                break
 class transformer_decoder(nn.Module):
     def __init__(self,d_model,num_heads,d_ff,dropout=0.1,layer=6):
         super().__init__()
@@ -60,10 +66,6 @@ class transformer_decoder(nn.Module):
             x=layer(x,q_k,mask=mask,conb_mask=conb_mask)
         x=self.norm(x)
         return x
-
-
-
-
 class transformer_decoder_layer(nn.Module):
     def __init__(self,d_model,num_heads,d_ff,dropout=0.1,mask=None):
         super().__init__()
@@ -84,12 +86,6 @@ class transformer_decoder_layer(nn.Module):
         norm3_x = self.norm3(x)
         x = x + self.dropout(self.ffn(norm3_x))
         return x
-
-
-
-
-
-
 class transformer_encoder(nn.Module):
     def __init__(self, d_model, num_heads, d_ff, dropout=0.1, layer=6):
         super().__init__()
@@ -150,7 +146,7 @@ class MultiHeadAttention(nn.Module):
         dot_product=torch.matmul(query,key.transpose(-2,-1))/math.sqrt(d_k)
         if mask is not None:
             #dot_product[mask]=-1e9这个有风险，最好用体系化函数
-            dot_product=dot_product.masked_fill(mask==1,-1e9)
+            dot_product=dot_product.masked_fill(mask==0,-1e9)
         score=F.softmax(dot_product,dim=-1) @ value
         return score
     def forward(self, query, key, value,mask=None):

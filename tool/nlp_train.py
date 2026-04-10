@@ -5,7 +5,7 @@ from torch import nn
 from torch.optim import SGD, Adam
 from torch.utils.data import DataLoader, random_split
 from transformers import AutoTokenizer
-import model
+import nlp_model
 import tool.tools as tools
 from new_dataset import NLPDataset,load_cornell_dialogue
 import tqdm
@@ -37,12 +37,10 @@ def train(args):
 
         src_dict = tokenizer(texts, padding=True, truncation=True, max_length=args.max_length, return_tensors="pt")
         src_ids = src_dict["input_ids"]
-        src_mask = (src_dict["attention_mask"] == 0)
-
+        src_mask = src_dict["attention_mask"]
         labels_dict = tokenizer(labels, padding=True, truncation=True, max_length=args.max_length, return_tensors="pt")
         labels_ids = labels_dict["input_ids"]
-        labels_mask = (labels_dict["attention_mask"] == 0)
-
+        labels_mask = labels_dict["attention_mask"]
         tar_input = labels_ids[:, :-1]
         tar_label = labels_ids[:, 1:]
         tar_mask = labels_mask[:, :-1]
