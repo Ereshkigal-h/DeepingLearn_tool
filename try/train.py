@@ -17,17 +17,15 @@ LOSS_REGISTRY = {
     "ce": nn.CrossEntropyLoss(),
     "triplet": nn.TripletMarginLoss(),
 }
-
 OPTIMIZER_REGISTRY = {"sgd": SGD, "adam": Adam}
 def train(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     print(f"正在加载分词器: {args.tokenizer_name}")
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_name)
     samples=load_cornell_dialogue(args.train_path,args.test_path)
     full_dataset = NLPDataset(samples)
     total_len = len(full_dataset)
-    # 按照 5:1 划分 (5/6 为训练集，1/6 为测试集)
+    #按照 5:1 划分 (5/6 为训练集，1/6 为测试集)
     train_len = int(total_len * (5 / 6))
     test_len = total_len - train_len
     train_dataset, test_dataset = random_split(full_dataset, [train_len, test_len])
@@ -37,58 +35,62 @@ def train(args):
         texts = [item[0] for item in batch]
         labels = [item[1] for item in batch]
 
-        # 一键完成切词、映射数字、自动截断、用0补齐长度
-        input = tokenizer(texts, padding=True, truncation=True, max_length=args.max_length, return_tensors="pt")
-        return input, labels
-    # 将 collate_fn 挂载到 DataLoader 上
+        src_dict = tokenizer(texts, padding=True, truncation=True, max_length=args.max_length, return_tensors="pt")
+        src_ids = src_dict["input_ids"]
+        src_mask = (src_dict["attention_mask"] == 0)
+
+        labels_dict = tokenizer(labels, padding=True, truncation=True, max_length=args.max_length, return_tensors="pt")
+        labels_ids = labels_dict["input_ids"]
+        labels_mask = (labels_dict["attention_mask"] == 0)
+
+        tar_input = labels_ids[:, :-1]
+        tar_label = labels_ids[:, 1:]
+        tar_mask = labels_mask[:, :-1]
+        return {
+            "src": src_ids,
+            "src_mask": src_mask,
+            "tar_input": tar_input,
+            "tar_mask": tar_mask,
+            "tar_label": tar_label
+        }
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn)
     evaluators = evaluator(args.evaluator)
     if args.loss not in LOSS_REGISTRY:
         raise ValueError(f"Unknown loss {args.loss}")
-
     optim_kwargs = {"lr": args.learning_rate, "weight_decay": args.weight_decay}
     if args.optimizer == 'sgd':
         optim_kwargs.update({"momentum": args.momentum, "nesterov": True})
     elif args.optimizer == 'adam':
         optim_kwargs.update({"betas": (args.momentum, 0.999)})
-
-    # 【关键】要把分词器的词表大小传给你的 Transformer 模型！
     my_model = model.transformer(vocab_size=tokenizer.vocab_size).to(device)
-
     criterion = LOSS_REGISTRY[args.loss].to(device)
-    optimizer = OPTIMIZER_REGISTRY[args.optimizer](my_model.parameters(), **optim_kwargs)
-
-    # ================= 5. 开始训练 =================
+    optimizer = OPTIMIZER_REGISTRY[args.optimizer](my_model.parameters(),ignore_index=tokenizer.pad_token_id,**optim_kwargs)
     for epoch in range(args.epochs):
         my_model.train()
         total_loss = 0
         train_pbar = tqdm.tqdm(train_dataloader, total=args.train_steps, desc=f"Epoch [{epoch + 1}/{args.epochs}]")
-        for i, (inputs, labels) in enumerate(train_pbar):
+        for i, batch_data in enumerate(train_pbar):
             if i >= args.train_steps:
                 break
-
             # inputs 现在是一个字典，包含 'input_ids' 和 'attention_mask'
             # 我们把它移动到 GPU/CPU
-            inputs = {k: v.to(device) for k, v in inputs.items()}
-            labels = labels.to(device)
-
+            inputs = {k: v.to(device) for k, v in batch_data.items()}
             optimizer.zero_grad()
-
-            # 【修改】将 input_ids 传给模型
-            outputs = my_model(inputs['input_ids'])
-
-            loss = criterion(outputs, labels)
+            outputs = my_model(
+                src=batch_data['src'],
+                tar=batch_data['tar_input'],
+                src_mask=batch_data['src_mask'],
+                tar_mask=batch_data['tar_mask']
+            )
+            loss = criterion(outputs.reshape(-1, tokenizer.vocab_size), batch_data['tar_label'].reshape(-1))
             loss.backward()
             optimizer.step()
-
             total_loss += loss.item()
             if i % 10 == 0:
                 train_pbar.set_postfix({"Loss": f"{loss.item():.4f}"})
-
         avg_loss = total_loss / args.train_steps
         print(f"Epoch {epoch + 1} 结束! 平均 Loss: {avg_loss:.4f}")
-
         if (epoch + 1) % 10 == 0 or epoch == args.epochs - 1:
             with torch.no_grad():
                 my_model.eval()
@@ -109,12 +111,12 @@ if __name__ == "__main__":
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--accuracy", type=str, default="float32")
 
-    # 【新增参数】
+
     parser.add_argument("--tokenizer_name", type=str, default="bert-base-uncased", help="HuggingFace分词器名称")
     parser.add_argument("--max_length", type=int, default=128, help="文本截断的最大长度")
     parser.add_argument("--data_path", type=str, default="./data/full_data.csv", help="总数据集的路径(用来按5:1划分)")
 
-    parser.add_argument("--evaluator", type=str, nargs='+', default=["MULTI_ACC"])  # 改为多分类测试
+    parser.add_argument("--evaluator", type=str, nargs='+', default=["MULTI_ACC"])
     args = parser.parse_args()
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu

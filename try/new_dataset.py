@@ -36,4 +36,6 @@ class NLPDataset(Dataset):
         # 仅仅返回字符串，不做任何转换
         # 数据会在 DataLoader 的 collate_fn 阶段交由 Tokenizer 处理
         item = self.data_list[index]
-        return item
+        print(item.shape)
+        label = item[1][1:]
+        return item, label
