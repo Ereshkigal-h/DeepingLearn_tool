@@ -49,6 +49,8 @@ def multi_class_metric(y_true, y_pred):
 
 # ================= NLP 文本生成指标 =================
 def nlp_bleu_metric(references, predictions):
+    if all(p.strip() == "" for p in predictions):
+        return {"bleu": 0.0}
     bleu = evaluate.load("bleu")
     formatted_refs = [[ref] for ref in references]
     return bleu.compute(predictions=predictions, references=formatted_refs)
