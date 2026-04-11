@@ -124,8 +124,8 @@ class evaluator:
         all_labels = []
         for batch in tqdm.tqdm(test_dataloader, desc="生成评估中"):
             input_ids = batch["src"].to(device)
-            target_ids = batch["tar_label"]
-            src_mask = batch["src_mask"]
+            target_ids = batch["tar_label"].to(device)
+            src_mask = batch["src_mask"].to(device)
             generated_ids = model.generate(input_ids,src_mask=src_mask,max_length=max_length
                                            ,start_token_id=tokenizer.convert_tokens_to_ids("[CLS]")
                                            ,end_token_id=tokenizer.convert_tokens_to_ids("[SEP]"))
@@ -133,7 +133,6 @@ class evaluator:
             labels_text = tokenizer.batch_decode(target_ids, skip_special_tokens=True)
             all_preds.extend(preds_text)
             all_labels.extend(labels_text)
-
         result_dict = {}
         for i, metric_info in enumerate(self.metric_list):
             compute_func = metric_info[0]

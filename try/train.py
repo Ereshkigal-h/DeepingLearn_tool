@@ -82,7 +82,7 @@ def train(args):
                 src_mask=inputs['src_mask'],
                 tar_mask=inputs['tar_mask']
             )
-            loss = criterion(outputs.reshape(-1, tokenizer.vocab_size), batch_data['tar_label'].reshape(-1))
+            loss = criterion(outputs.reshape(-1, tokenizer.vocab_size), inputs['tar_label'].reshape(-1))
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="train")
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--epochs", type=int, default=100)
-    parser.add_argument("--train_steps", type=int, default=50)
+    parser.add_argument("--train_steps", type=int, default=100)
     parser.add_argument("--loss", type=str, default="ce")
     parser.add_argument("--optimizer", type=str, choices=['sgd', 'adam'], default="adam")
     parser.add_argument("--gpu", default="0", type=str)
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_length", type=int, default=128, help="文本截断的最大长度")
     parser.add_argument("--data_path", type=str, help="总数据集的路径(用来按5:1划分)")
     parser.add_argument("--label_path",type=str, help="总标签的路径(用来按5:1划分)")
-    parser.add_argument("--evaluator", type=str, nargs='+', default=["MULTI_ACC"])
+    parser.add_argument("--evaluator", type=str, nargs='+', default=["BLEU"])
     args = parser.parse_args()
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu

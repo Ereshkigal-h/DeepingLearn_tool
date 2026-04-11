@@ -53,6 +53,7 @@ class transformer(nn.Module):
             pred = torch.cat([pred, next_token], dim=-1)
             if (pred == end_token_id).any(dim=-1).all():
                 break
+        return pred
 class transformer_decoder(nn.Module):
     def __init__(self,d_model,num_heads,d_ff,dropout=0.1,layer=6):
         super().__init__()
